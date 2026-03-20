@@ -3,7 +3,10 @@ muonGun_pT_1000_5000 with a 2 GeV pT cut.
 
 source /cvmfs/muoncollider.cern.ch/release/2.9/setup.sh
 export PYTHONPATH=/home/sdouglas/muon_analysis/pypackages:$PYTHONPATH
-python3 muon_reco_analysis.py
+python3 muon_reco_analysis.py OR
+nohup python3 muon_reco_analysis.py > output.log 2>&1 &
+
+NEW FILE NAMES NOW, CHANGE IF NEEDED REMEMBER THIS
 
 """
 
@@ -15,7 +18,7 @@ from dataclasses import dataclass, field
 # ── third-party ────────────────────────────────────────────────────────────
 import numpy as np
 import matplotlib
-matplotlib.use("Agg")          # backedn
+matplotlib.use("Agg")          # backend
 import matplotlib.pyplot as plt
 # import matplotlib.gridspec as gridspec   # not used
 from scipy.optimize import curve_fit
@@ -465,14 +468,14 @@ def plot_pt_resolution(datasets: dict, bins, cfg):
 
     for tag, arr in datasets.items():
         st  = STYLE[tag]
-        # fractional residual (not in percent here, multiply by 100 before plotting)
+        # fractional residual (not in percent !! need mult 100)
         res = (arr["reco_pt"] - arr["true_pt"]) / arr["true_pt"]
         centers, sigmas, sig_errs, means = [], [], [], []
 
         for lo, hi in zip(bins[:-1], bins[1:]):
             mask = (arr["true_pt"] >= lo) & (arr["true_pt"] < hi)
             if mask.sum() < cfg["min_events_per_bin"]:
-                continue   # skip bins with too few events to fit reliably
+                continue   # skip bins with too few events, bad fit otherwise
             mu, sig, ok = gauss_fit(res[mask])
             centers.append(0.5 * (lo + hi))
             sigmas.append(sig * 100)         # convert to percent
@@ -484,11 +487,11 @@ def plot_pt_resolution(datasets: dict, bins, cfg):
         sig_errs = np.array(sig_errs)
         means    = np.array(means)
 
-        # left panel: resolution (sigma) vs pT
+        # left panel resolution (sigma) vs pT
         axes[0].errorbar(centers, sigmas, yerr=sig_errs,
                          fmt=f"{st['marker']}-", color=st["color"],
                          label=st["label"], capsize=4, linewidth=1.5)
-        # right panel: bias (mean) vs pT
+        # right panel bias (mean) vs pT
         axes[1].plot(centers, means, f"{st['marker']}-",
                      color=st["color"], label=st["label"], linewidth=1.5)
 
@@ -530,7 +533,7 @@ def plot_efficiency(datasets: dict, bins, cfg):
                 continue
             n_match = arr["all_matched"][mask].sum()
             eff = n_match / n_tot
-
+            # WHAT IS IT DOING HERE?? WHAT IS A WILSON SCORE?
             # wilson score interval: more reliable than sqrt(p(1-p)/n) near 0 or 1
             z     = 1.96   # 95% confidence level
             denom = 1 + z**2 / n_tot
@@ -604,9 +607,9 @@ def plot_angular_resolution(datasets: dict, bins, cfg):
     _save(fig, cfg["out_dir"], "03_angular_resolution.png", cfg["dpi"])
 
 
-def plot_pulls(datasets: dict, cfg):
+"""def plot_pulls(datasets: dict, cfg):
     
-    """plot track parameter pull distributions
+    ADD TRIP STRING BACK IF UNCOMMENTED plot track parameter pull distributions
     a pull = (measured - truth) / uncertainty. if the track fit is well-calibrated,
     pulls should follow a unit gaussian (mean=0, sigma=1). deviations indicate
     biased measurements or over/underestimated uncertainties
@@ -614,7 +617,8 @@ def plot_pulls(datasets: dict, cfg):
     currently these are mostly empty because SiTracksMCTruthLink is not available
     in these files — the pull arrays will be length 0 and nothing is plotted
     the dashed black line shows the ideal unit gaussian for reference
-    """
+    ADD TRIP STRING BACK IF UNCOMMENTED
+    
     param_labels = {
         "pull_d0":     r"$d_0 / \sigma_{d_0}$",
         "pull_z0":     r"$z_0 / \sigma_{z_0}$",
@@ -655,7 +659,7 @@ def plot_pulls(datasets: dict, cfg):
 
     fig.suptitle("Track Parameter Pulls: BIB Comparison", fontsize=13, fontweight="bold")
     fig.tight_layout()
-    _save(fig, cfg["out_dir"], "04_track_pulls.png", cfg["dpi"])
+    _save(fig, cfg["out_dir"], "04_track_pulls.png", cfg["dpi"])"""
 
 
 def plot_residual_distributions(datasets: dict, cfg):
@@ -676,7 +680,7 @@ def plot_residual_distributions(datasets: dict, cfg):
         st  = STYLE[tag]
         res = (arr["reco_pt"] - arr["true_pt"]) / arr["true_pt"] * 100
 
-        # left panel: full range to show any BIB failure tails
+        # left panel full range to show any BIB failure tails
         axes[0].hist(res, bins=100, color=st["color"], alpha=0.7,
                      edgecolor="k", linewidth=0.3)
         axes[0].set_xlabel(r"$(p_T^{\rm reco} - p_T^{\rm true})/p_T^{\rm true}$ [%]", fontsize=11)
@@ -684,7 +688,7 @@ def plot_residual_distributions(datasets: dict, cfg):
         axes[0].set_title("Full Range (BIB failures visible)", fontsize=12)
         axes[0].grid(alpha=0.3)
 
-        # right panel: core peak only — excludes large residuals from BIB
+        # right panel core peak only — excludes large residuals from BIB
         core   = res[(res > -30) & (res < 30)]
         n_bins = 60
         counts, edges, _ = axes[1].hist(core, bins=n_bins, range=(-30, 30),
@@ -780,9 +784,9 @@ def main():
     plot_pt_resolution(datasets, bins, cfg)
     plot_efficiency(datasets, bins, cfg)
     plot_angular_resolution(datasets, bins, cfg)
-    plot_pulls(datasets, cfg)
+    #plot_pulls(datasets, cfg) UNCOMMENT IF INCLUDING 
 
-    print(f"\nDone! All plots saved to '{cfg['out_dir']}/'")
+    print(f"\n plots saved to '{cfg['out_dir']}/'")
 
 
 if __name__ == "__main__":
